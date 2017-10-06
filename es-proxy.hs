@@ -54,13 +54,17 @@ framed = conduitGet $ do
 addFraming :: Monad m => Conduit BL.ByteString m B.ByteString
 addFraming = do
   yield $ B.pack [_E, _S]
-  awaitForever $ \msg ->
+  awaitForever $ \msg -> do
     let l = fromIntegral $ BL.length msg
-    in yield $ BL.toStrict $ runPut $ do
+    yield $ BL.toStrict $ runPut $ do
           putWord32be $ if l == 0 then maxBound else l
           putLazyByteString msg
           putWord8 _E
           putWord8 _S
+          putWord8 0xff
+          putWord8 0xff
+
+    yield $ B.pack [0xff, 0xff, _E, _S]
 
 logIncoming :: (Monad m, MonadIO m) => Conduit B.ByteString m B.ByteString
 logIncoming = awaitForever $ \bs -> do
